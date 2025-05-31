@@ -8,102 +8,106 @@ import {
   FlatList,
   Dimensions,
 } from 'react-native';
-import { auth } from '../Firebase/FirebaseConfig';
+import { auth, db } from '../Firebase/FirebaseConfig'; // ✅ Import db here
 import { onAuthStateChanged } from 'firebase/auth';
+import { collection, getDocs } from 'firebase/firestore'; // ✅ Use getDocs for collections
 
 const { width } = Dimensions.get('window');
 
-const animalData = [
-  { id: '1', image: require('../../assets/dog1.jpg'), category: 'Dog', city: 'Delhi' },
-  { id: '2', image: require('../../assets/cat1.jpg'), category: 'Cat', city: 'Mumbai' },
-  { id: '3', image: require('../../assets/dog2.jpg'), category: 'Dog', city: 'Bangalore' },
-];
-
 const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
+  const [animalData, setAnimalData] = useState([]);
   const flatListRef = useRef(null);
   const currentIndex = useRef(0);
 
+  // ✅ Fetch all documents from "animals" collection
+  const fetchAnimals = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'animals'));
+      const animalsArray = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAnimalData(animalsArray);
+    } catch (error) {
+      console.error('Error fetching animals:', error);
+    }
+  };
+
+  const filteredAnimalData = animalData.filter((animal) => animal.isAvailable);
+
   useEffect(() => {
+    fetchAnimals();
     const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
     return unsubscribe;
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (flatListRef.current) {
-        currentIndex.current = (currentIndex.current + 1) % animalData.length;
+      if (flatListRef.current && filteredAnimalData.length > 0) {
+        currentIndex.current = (currentIndex.current + 1) % filteredAnimalData.length;
         flatListRef.current.scrollToIndex({ index: currentIndex.current, animated: true });
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [filteredAnimalData]);
 
   const renderItem = ({ item }) => (
     <View style={styles.slide}>
-      <Image source={item.image} style={styles.image} />
+      <Image source={{ uri: item.imageUrl }} style={styles.image} />
       <Text style={styles.caption}>{item.category} - {item.city}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Navbar */}
       <View style={styles.navbar}>
         <View style={{ width: 60 }} />
         <Text style={styles.appName}>PetPals</Text>
-        <TouchableOpacity onPress={() => {
-          if (user) {
-            navigation.navigate('Profile');
-          } else {
-            navigation.navigate('Login');
-          }
-        }}>
+        <TouchableOpacity onPress={() => navigation.navigate(user ? 'Profile' : 'SignIn')}>
           <Text style={styles.navButton}>{user ? 'Profile' : 'Sign In'}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Main Content */}
       <View style={styles.main}>
         {user ? (
           <>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate('UploadAnimal')}
-            >
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('UploadAnimal')}>
               <Text style={styles.buttonText}>Upload Animal</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate('AllAnimals')}
-            >
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('AllAnimals')}>
               <Text style={styles.buttonText}>See All Animals</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Doctors')}>
+              <Text style={styles.buttonText}>Contact a Doctor</Text>
             </TouchableOpacity>
           </>
         ) : (
           <View style={styles.centered}>
             <Text style={styles.aboutTitle}>🐾 About PetPals</Text>
             <Text style={styles.aboutText}>We help animals get adopted and provide care to injured ones.</Text>
-            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Login')}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('SignIn')}>
               <Text style={styles.buttonText}>Sign In</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
-      {/* FlatList Slider */}
-      <View style={styles.carouselContainer}>
-        <FlatList
-          ref={flatListRef}
-          data={animalData}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-        />
-      </View>
+      {filteredAnimalData.length > 0 && (
+        <View style={styles.carouselContainer}>
+          <FlatList
+            ref={flatListRef}
+            data={filteredAnimalData}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -111,13 +115,13 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF8F0', // Background color
+    backgroundColor: '#FFF8F0',
   },
   navbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FF914D', // Primary color
+    backgroundColor: '#FF914D',
     padding: 15,
     paddingTop: 40,
   },
@@ -136,13 +140,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionButton: {
-    backgroundColor: '#FF914D', // Primary color
+    backgroundColor: '#FF914D',
     padding: 15,
     borderRadius: 10,
     marginVertical: 10,
   },
   buttonText: {
-    color: '#FFF8F0', // Light text on primary
+    color: '#FFF8F0',
     textAlign: 'center',
     fontWeight: '600',
     fontSize: 16,
@@ -154,13 +158,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#333333', // Primary text
+    color: '#333333',
   },
   aboutText: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
-    color: '#666666', // Secondary text
+    color: '#666666',
   },
   carouselContainer: {
     paddingBottom: 20,
@@ -183,7 +187,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 16,
     fontWeight: '500',
-    color: '#333333', // Primary text
+    color: '#333333',
   },
 });
 

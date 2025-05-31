@@ -17,9 +17,6 @@ import { getAuth } from 'firebase/auth';
 
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
-// Optional: Uncomment if you want reverse geocoding
-import * as Location from 'expo-location';
-
 const screenWidth = Dimensions.get('window').width;
 
 const AllAnimalsScreen = () => {
@@ -36,11 +33,7 @@ const AllAnimalsScreen = () => {
         for (const doc of querySnapshot.docs) {
           const data = { id: doc.id, ...doc.data() };
 
-          // Optional: Convert coords to city
-          // if (data.latitude && data.longitude) {
-          //   const city = await getCityFromCoords(data.latitude, data.longitude);
-          //   data.city = city;
-          // }
+
 
           fetchedAnimals.push(data);
         }
@@ -59,39 +52,38 @@ const AllAnimalsScreen = () => {
   const handleCloseDetail = () => setSelectedAnimal(null);
 
   const handlePurposeAction = async (purpose) => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-  
-    if (!user) {
-      alert('Please sign in to perform this action.');
-      return;
-    }
-  
-    try {
-      // 1. Update the animal's isAvailable to false
-      const animalRef = doc(db, 'animals', selectedAnimal.id);
-      await updateDoc(animalRef, {
-        isAvailable: false,
-      });
-  
-      // 2. Add animal reference to user's profile
-      const userRef = doc(db, 'users', user.uid);
-      const fieldName = purpose === 'Adoption' ? 'adoptedAnimals' : 'helpedAnimals';
-  
-      await updateDoc(userRef, {
-        [fieldName]: arrayUnion(selectedAnimal.id),
-      });
-  
-      setAnimals((prev) => prev.filter((animal) => animal.id !== selectedAnimal.id));
-      alert(`Thank you for choosing to ${purpose === 'Adoption' ? 'adopt' : 'help'}!`);
-      setSelectedAnimal(null);
-  
-      // 3. Remove animal from local state
-    } catch (error) {
-      console.error('Error updating documents:', error);
-      alert('Something went wrong. Please try again.');
-    }
-  };
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert('Please sign in to perform this action.');
+    return;
+  }
+
+  try {
+    const animalRef = doc(db, 'animals', selectedAnimal.id);
+    await updateDoc(animalRef, {
+      isAvailable: false,
+    });
+
+    const userRef = doc(db, 'users', user.uid);
+    const normalizedPurpose = purpose.trim().toLowerCase();
+    const fieldName = normalizedPurpose === 'adopt' ? 'adoptedAnimals' : 'helpedAnimals';
+
+    await updateDoc(userRef, {
+      [fieldName]: arrayUnion(selectedAnimal.id),
+    });
+    console.log(fieldName)
+
+    setAnimals((prev) => prev.filter((animal) => animal.id !== selectedAnimal.id));
+    alert(`Thank you for choosing to ${normalizedPurpose === 'Adopt' ? 'adopt' : 'help'}!`);
+    setSelectedAnimal(null);
+  } catch (error) {
+    console.error('Error updating documents:', error);
+    alert('Something went wrong. Please try again.');
+  }
+};
+
 
 
   const renderCards = () => {

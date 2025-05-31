@@ -15,6 +15,7 @@ import UploadAnimalScreen from './src/Screens/UploadAnimalScreen';
 import AllAnimalsScreen from './src/Screens/AllAnimalsScreen';
 
 import UserProfileScreen from './src/Screens/UserProfileScreen';
+import DoctorsScreen from './src/Screens/DoctorsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -45,7 +46,7 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {user ? (
             <>
-              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="Doctors" component={DoctorsScreen} />
               <Stack.Screen name="UploadAnimal" component={UploadAnimalScreen} />
               <Stack.Screen name="AllAnimals" component={AllAnimalsScreen} />
               <Stack.Screen name="Profile" component={UserProfileScreen} />
@@ -53,6 +54,7 @@ export default function App() {
           ) : (
             <>
             
+             <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="SignIn" component={SignInScreen} />
               <Stack.Screen name="SignUp" component={SignUpScreen} />
             </>

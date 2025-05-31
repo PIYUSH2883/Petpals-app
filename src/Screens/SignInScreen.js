@@ -47,7 +47,7 @@ const SignInScreen = ({ navigation }) => {
         style={styles.input}
       />
 
-      <Button title="Login" onPress={handleLogin} />
+      <Button title="Login" onPress={handleLogin} color="#FF914D" />
 
       <View style={styles.signupnav}>
         <Text>Don't have an account?</Text>

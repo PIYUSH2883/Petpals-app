@@ -5,9 +5,9 @@ import { TextInput, Button } from 'react-native-paper';
 import RNPickerSelect from 'react-native-picker-select';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../Firebase/FirebaseConfig';
-import { getFirestore, doc, setDoc } from 'firebase/firestore'; // Import Firestore
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-const db = getFirestore(); // Initialize Firestore
+const db = getFirestore();
 
 const SignUpScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -15,29 +15,29 @@ const SignUpScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [city, setCity] = useState('');
   const [role, setRole] = useState('user');
+  const [mobile, setMobile] = useState(''); // Mobile number state
 
   const handleSignUp = async () => {
-    if (!name || !email || !password || !city || !role) {
+    if (!name || !email || !password || !city || !role || !mobile) {
       Alert.alert('Error', 'Please fill out all fields.');
       return;
     }
 
     try {
-      // Create user with email and password
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Store additional user data in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         name,
         email,
         city,
         role,
+        mobile,
         uid: user.uid,
       });
 
       Alert.alert('Success', 'Account created!');
-      navigation.navigate('SignIn'); // Navigate to SignIn screen
+      navigation.navigate('SignIn');
     } catch (error) {
       Alert.alert('Signup Error', error.message);
     }
@@ -83,33 +83,41 @@ const SignUpScreen = ({ navigation }) => {
         style={styles.input}
       />
 
-      <RNPickerSelect
-        onValueChange={(value) => setRole(value)}
-        items={[
-          { label: 'User', value: 'User' },
-          { label: 'Doctor', value: 'Doctor' },
-        ]}
-        value={role}
-        style={{
-          inputAndroid: {
-            ...styles.pickerInput,
-            backgroundColor: 'white',
-            color: '#333',
-          },
-          inputIOS: {
-            ...styles.pickerInput,
-            backgroundColor: 'white',
-            color: '#333',
-          },
-          placeholder: {
-            color: '#aaa',
-          },
-          iconContainer: {
-            top: 10,
-            right: 12,
-          },
-        }}
+      <TextInput
+        label="Mobile Number"
+        value={mobile}
+        onChangeText={setMobile}
+        keyboardType="phone-pad"
+        mode="outlined"
+        style={styles.input}
       />
+
+      <RNPickerSelect
+  onValueChange={(value) => setRole(value)}
+  items={[
+    { label: 'User', value: 'User' },
+    { label: 'Doctor', value: 'Doctor' },
+  ]}
+  value={role}
+  placeholder={{ label: 'Select the role', value: null,  }}
+  style={{
+    inputAndroid: {
+      ...styles.pickerInput,
+      backgroundColor: 'white',
+      color: '#333',
+    },
+    inputIOS: {
+      ...styles.pickerInput,
+      backgroundColor: 'white',
+      color: '#333',
+    },
+    placeholder: {
+      color: '#aaa',
+    },
+
+  }}
+/>
+
 
       <Button
         mode="contained"
@@ -124,19 +132,29 @@ const SignUpScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 24, marginBottom: 20, textAlign: 'center'  , backgroundColor:'#FF914D' , borderRadius:20 , padding:4 , color:'#fff' },
+  title: {
+    fontSize: 24,
+    marginBottom: 10,
+    textAlign: 'center',
+    backgroundColor: '#FF914D',
+    borderRadius: 10,
+    padding: 4,
+    color: '#fff',
+    marginTop:30
+  },
   input: { marginBottom: 10 },
   pickerInput: {
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
+    padding: 8,
+    marginBottom:6,
+    borderWidth: 2,
     borderColor: '#ddd',
-    borderRadius: 4,
+    borderRadius: 20,
   },
-  signUpButton: { marginTop: 20 , 
-    backgroundColor:'#FF914D',
-    
-   }
+  signUpButton: {
+    marginTop: 20,
+    backgroundColor: '#FF914D',
+    borderRadius:10
+  }
 });
 
 export default SignUpScreen;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Image, Text as RNText, SafeAreaView } from 'react-native';
 import { Text, Checkbox, Card } from 'react-native-paper';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth } from '../Firebase/FirebaseConfig';
 
 const db = getFirestore();
@@ -26,23 +26,23 @@ const UserProfileScreen = () => {
           setShowInList(data.showInList ?? true);
         }
 
-        // Fetch helped animals from 'animals' collection by ID
-        if (Array.isArray(data.helpedAnimals) && data.helpedAnimals.length > 0) {
+        // Fetch helped animals
+        if (Array.isArray(data.helpedAnimals)) {
           const helped = await Promise.all(
             data.helpedAnimals.map(async (animalId) => {
-              const animalSnap = await getDoc(doc(db, 'animals', animalId));
-              return animalSnap.exists() ? { id: animalSnap.id, ...animalSnap.data() } : null;
+              const snap = await getDoc(doc(db, 'animals', animalId));
+              return snap.exists() ? { id: snap.id, ...snap.data() } : null;
             })
           );
           setHelpedAnimals(helped.filter(Boolean));
         }
 
-        // Fetch adopted animals from 'animals' collection by ID
-        if (Array.isArray(data.adoptedAnimals) && data.adoptedAnimals.length > 0) {
+        // Fetch adopted animals
+        if (Array.isArray(data.adoptedAnimals)) {
           const adopted = await Promise.all(
             data.adoptedAnimals.map(async (animalId) => {
-              const animalSnap = await getDoc(doc(db, 'animals', animalId));
-              return animalSnap.exists() ? { id: animalSnap.id, ...animalSnap.data() } : null;
+              const snap = await getDoc(doc(db, 'animals', animalId));
+              return snap.exists() ? { id: snap.id, ...snap.data() } : null;
             })
           );
           setAdoptedAnimals(adopted.filter(Boolean));
@@ -54,67 +54,70 @@ const UserProfileScreen = () => {
   }, []);
 
   const handleToggleShowInList = async () => {
-    const uid = auth.currentUser.uid;
-    const newValue = !showInList;
-    await updateDoc(doc(db, 'users', uid), { showInList: newValue });
-    setShowInList(newValue);
+    try {
+      const uid = auth.currentUser.uid;
+      const newValue = !showInList;
+      await updateDoc(doc(db, 'users', uid), { showInList: newValue });
+      setShowInList(newValue);
+    } catch (error) {
+      console.error("Error updating showInList:", error);
+    }
   };
 
   if (!userData) return null;
 
   return (
     <SafeAreaView>
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>My Profile</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerText}>My Profile</Text>
+        </View>
 
-      {/* User Info Card */}
-      <Card style={styles.cardContainer}>
-        <Card.Content>
-          <Text style={styles.label}>Name: {userData.name}</Text>
-          <Text style={styles.label}>Email: {userData.email}</Text>
-          <Text style={styles.label}>City: {userData.city}</Text>
-          <Text style={styles.label}>Role: {userData.role}</Text>
+        <Card style={styles.cardContainer}>
+          <Card.Content>
+            <Text style={styles.label}>Name: {userData.name}</Text>
+            <Text style={styles.label}>Email: {userData.email}</Text>
+            <Text style={styles.label}>City: {userData.city}</Text>
+            <Text style={styles.label}>Role: {userData.role}</Text>
 
-          {userData.role === 'doctor' && (
-            <View style={styles.checkboxContainer}>
-              <Checkbox
-                status={showInList ? 'checked' : 'unchecked'}
-                onPress={handleToggleShowInList}
-              />
-              <Text onPress={handleToggleShowInList}>Show my profile in doctor list</Text>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-          <View style={styles.lower}>
-      {/* Helped Animals Section */}
-      <Text style={styles.sectionTitle}>Animals Helped</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-        {helpedAnimals.length > 0 ? helpedAnimals.map(animal => (
-          <View key={animal.id} style={styles.animalCard}>
-            <Image source={{ uri: animal.imageUrl }} style={styles.animalImage} />
-            <RNText style={styles.animalName}>{animal.name}</RNText>
-            <RNText style={styles.animalSub}>{animal.type}</RNText>
-          </View>
-        )) : <RNText>No animals helped yet.</RNText>}
+            {userData.role === 'Doctor' && (
+              <View style={styles.checkboxContainer}>
+                <Checkbox
+                  status={showInList ? 'checked' : 'unchecked'}
+                  onPress={handleToggleShowInList}
+                />
+                <Text onPress={handleToggleShowInList}>
+                  Show my profile in doctor list
+                </Text>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+
+        <View style={styles.lower}>
+          <Text style={styles.sectionTitle}>Animals Helped</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+            {helpedAnimals.length > 0 ? helpedAnimals.map(animal => (
+              <View key={animal.id} style={styles.animalCard}>
+                <Image source={{ uri: animal.imageUrl }} style={styles.animalImage} />
+                <RNText style={styles.animalName}>{animal.name}</RNText>
+                <RNText style={styles.animalSub}>{animal.type}</RNText>
+              </View>
+            )) : <RNText>No animals helped yet.</RNText>}
+          </ScrollView>
+
+          <Text style={styles.sectionTitle}>Animals Adopted</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+            {adoptedAnimals.length > 0 ? adoptedAnimals.map(animal => (
+              <View key={animal.id} style={styles.animalCard}>
+                <Image source={{ uri: animal.imageUrl }} style={styles.animalImage} />
+                <RNText style={styles.animalName}>{animal.name}</RNText>
+                <RNText style={styles.animalSub}>{animal.type}</RNText>
+              </View>
+            )) : <RNText>No animals adopted yet.</RNText>}
+          </ScrollView>
+        </View>
       </ScrollView>
-
-      {/* Adopted Animals Section */}
-      <Text style={styles.sectionTitle}>Animals Adopted</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-        {adoptedAnimals.length > 0 ? adoptedAnimals.map(animal => (
-          <View key={animal.id} style={styles.animalCard}>
-            <Image source={{ uri: animal.imageUrl }} style={styles.animalImage} />
-            <RNText style={styles.animalName}>{animal.name}</RNText>
-            <RNText style={styles.animalSub}>{animal.type}</RNText>
-          </View>
-        )) : <RNText>No animals adopted yet.</RNText>}
-      </ScrollView>
-      </View>
-    </ScrollView>
     </SafeAreaView>
   );
 };
@@ -123,14 +126,13 @@ const styles = StyleSheet.create({
   container: {
     padding: 0,
     paddingBottom: 40,
-    
   },
   header: {
     backgroundColor: '#FF914D',
     padding: 15,
     borderRadius: 8,
     marginBottom: 20,
-    paddingTop:30
+    paddingTop: 30
   },
   headerText: {
     color: 'white',
@@ -143,7 +145,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     elevation: 3,
-    marginHorizontal:15
+    marginHorizontal: 15
   },
   label: {
     fontSize: 16,
@@ -160,7 +162,6 @@ const styles = StyleSheet.create({
     marginTop: 25,
     marginBottom: 10,
     color: '#FF914D',
-    
   },
   horizontalScroll: {
     flexDirection: 'row',
@@ -189,8 +190,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'gray',
   },
-  lower:{
-    marginHorizontal:18
+  lower: {
+    marginHorizontal: 18
   }
 });
 
